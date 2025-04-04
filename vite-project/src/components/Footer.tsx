@@ -1,6 +1,9 @@
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6d3fbd6a518b8cbe988a913d33a389d1053a9c61
 const Footer = () => {
     return(
         <div className="bg-orange-500 py-10">

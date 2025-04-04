@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export type User = {
     _id: string;
     name: string;
@@ -28,4 +29,13 @@ export type Restaurant = {
     lastUpdated: string;
     imageFile: File;
 
+=======
+export type User ={
+    _id: string;
+    email: string;
+    name: string;
+    addressLine1: string;
+    city: string;
+    country: string;
+>>>>>>> 6d3fbd6a518b8cbe988a913d33a389d1053a9c61
 }

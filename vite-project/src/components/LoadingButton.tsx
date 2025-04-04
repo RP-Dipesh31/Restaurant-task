@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // import { Loader2 } from "lucide-react";
 // import { Button } from "./ui/button";
 
@@ -25,6 +26,18 @@ function LoadingButton({ type, disabled, children, ...props }: LoadingButtonProp
             {children}
         </button>
     );
+=======
+import { Loader2 } from "lucide-react";
+import { Button } from "./ui/button";
+
+const LoadingButton = () => {
+    return(
+        <Button disabled>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+            Loading
+        </Button>
+    )
+>>>>>>> 6d3fbd6a518b8cbe988a913d33a389d1053a9c61
 }
 
 export default LoadingButton;
