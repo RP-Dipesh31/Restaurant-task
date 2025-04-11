@@ -11,6 +11,7 @@ import contactRoutes from "./routes/contactRoutes";
 import menuRoutes from "../src/routes/menuItemRoutes"; // Import menuRoutes
 import path from "path";
 import paymentRoutes from "./routes/paymentRoutes";
+import uploadRoutes from "./routes/uploadRoutes"; // Import uploadRoutes
 
 mongoose.connect(process.env.MONGODB_CONNECTION_STRING as string, {
     tls: true, // Ensure TLS is enabled
@@ -25,15 +26,19 @@ app.use(express.json());
 app.use(cors());
 
 console.log("Registering routes...");
-app.use("/api/restaurants", restaurantRoutes); 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+app.use("/api/restaurants", restaurantRoutes); 
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use('/api/reservations', reservationRoutes);
 
 app.use('/api', contactRoutes);
 
 app.use("/api", menuRoutes);
+
+// Use your upload route
+app.use('/api', uploadRoutes);
 
 app.use('/api', paymentRoutes);
 
@@ -121,9 +126,6 @@ app._router.stack.forEach((middleware: { route?: { path: string }; name?: string
 
   });
   
-
-// console.log("Loaded routes:", app._router.stack);
-
 app.listen(7000, () => {
     console.log("server started on localhost:7000");
 });

@@ -1,13 +1,34 @@
+
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 
 const categories = ["Appetizers", "Main Course", "Desserts", "Beverages"];
 
-const defaultItem = {
-  _id: "",
+function generateObjectId() {
+  const timestamp = Math.floor(Date.now() / 1000).toString(16);
+  const random = Array.from({ length: 16 }, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  ).join('');
+  return (timestamp + random).slice(0, 24);
+}
+
+interface MenuItem {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+  category: string;
+  isVegetarian: boolean;
+  isNonVegetarian: boolean;
+  isGlutenFree: boolean;
+}
+
+const defaultItem: MenuItem = {
+  _id: generateObjectId(),
   name: "",
   price: 0,
   description: "",
@@ -20,9 +41,10 @@ const defaultItem = {
 
 const MenuSection = () => {
   const { setValue } = useFormContext();
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [selectedItem, setSelectedItem] = useState<any>(defaultItem);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<MenuItem>(defaultItem);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchItems = async () => {
     try {
@@ -42,30 +64,41 @@ const MenuSection = () => {
     setValue("menuItems", [selectedItem]);
   }, [selectedItem, setValue]);
 
-  const handleInputChange = (field: string, value: any) => {
-    setSelectedItem((prev: any) => {
+  const handleInputChange = (field: keyof MenuItem, value: any) => {
+    setSelectedItem((prev) => {
       const updated = { ...prev, [field]: value };
       setValue("menuItems", [updated]);
       return updated;
     });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const localUrl = URL.createObjectURL(file);
-      setImagePreview(localUrl);
-      handleInputChange("imageUrl", localUrl);
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await axios.post("http://localhost:7000/api/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      
+      const imageUrl = res.data.imageUrl;
+      setImagePreview(imageUrl);
+      handleInputChange("imageUrl", imageUrl);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload image");
     }
   };
 
   const handleSave = async () => {
     try {
-      console.log("Sending item:", selectedItem);
       await axios.post("http://localhost:7000/api/menu-items", selectedItem);
       alert("Item saved.");
-      setSelectedItem(defaultItem);
-      setImagePreview(null);
+      handleNewItem();
       fetchItems();
     } catch (err) {
       console.error(err);
@@ -74,12 +107,10 @@ const MenuSection = () => {
   };
 
   const handleUpdate = async () => {
-    if (!selectedItem._id) return alert("No item selected.");
     try {
       await axios.put(`http://localhost:7000/api/menu-items/${selectedItem._id}`, selectedItem);
       alert("Item updated.");
-      setSelectedItem(defaultItem);
-      setImagePreview(null);
+      handleNewItem();
       fetchItems();
     } catch (err) {
       console.error(err);
@@ -88,15 +119,11 @@ const MenuSection = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const confirm = window.confirm("Are you sure?");
-    if (!confirm) return;
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
     try {
       await axios.delete(`http://localhost:7000/api/menu-items/${id}`);
       alert("Item deleted.");
-      if (selectedItem._id === id) {
-        setSelectedItem(defaultItem);
-        setImagePreview(null);
-      }
+      if (selectedItem._id === id) handleNewItem();
       fetchItems();
     } catch (err) {
       console.error(err);
@@ -104,14 +131,17 @@ const MenuSection = () => {
     }
   };
 
-  const handleEditClick = (item: any) => {
+  const handleEditClick = (item: MenuItem) => {
     setSelectedItem(item);
     setImagePreview(item.imageUrl);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleNewItem = () => {
-    setSelectedItem(defaultItem);
+    const newItem = { ...defaultItem, _id: generateObjectId() };
+    setSelectedItem(newItem);
     setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -121,50 +151,62 @@ const MenuSection = () => {
         <Button variant="outline" onClick={handleNewItem}>New Item</Button>
       </div>
 
-      {/* Scrollable card layout */}
       <div className="flex overflow-x-auto gap-4 py-2">
         {menuItems.map((item) => (
           <div
             key={item._id}
             className="min-w-[200px] bg-white border rounded-lg p-3 shadow-sm flex-shrink-0"
           >
-            <h4 className="font-semibold">{item.name}</h4>
+            {/* Image preview */}
+            {item.imageUrl && (
+              <img
+                src={item.imageUrl}
+                alt={item.name}
+                className="w-full h-32 object-cover rounded mb-2"
+              />
+            )}
+            <h4 className="font-semibold">{item.name}</h4> 
             <p className="text-sm text-gray-600">{item.category}</p>
             <div className="mt-2 flex gap-2">
               <Button size="sm" onClick={() => handleEditClick(item)}>Edit</Button>
-              <Button
-                size="sm"
-                onClick={() => handleDelete(item._id)}
-              >
-                Delete
-              </Button>
+              <Button size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Form section */}
+
       <div className="border p-4 rounded space-y-3 bg-gray-50">
         <h3 className="font-semibold text-lg">Menu Item Details</h3>
 
         <Input
           value={selectedItem.name}
           onChange={(e) => handleInputChange("name", e.target.value)}
-          placeholder="Name"
+          placeholder="Item Name"
         />
+
         <Input
           type="number"
-          value={selectedItem.price}
-          onChange={(e) => handleInputChange("price", Number(e.target.value))}
+          value={Number.isFinite(selectedItem.price) ? selectedItem.price : ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            handleInputChange("price", val === "" ? 0 : parseFloat(val));
+          }}
           placeholder="Price"
         />
+
         <Input
           value={selectedItem.description}
           onChange={(e) => handleInputChange("description", e.target.value)}
           placeholder="Description"
         />
 
-        <Input type="file" accept="image/*" onChange={handleFileChange} />
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          ref={fileInputRef}
+        />
         {imagePreview && (
           <img
             src={imagePreview}
@@ -178,44 +220,42 @@ const MenuSection = () => {
           value={selectedItem.category}
           onChange={(e) => handleInputChange("category", e.target.value)}
         >
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <label>
             <input
               type="checkbox"
               checked={selectedItem.isVegetarian}
               onChange={(e) => handleInputChange("isVegetarian", e.target.checked)}
-            /> Vegetarian
+            />{" "}
+            Vegetarian
           </label>
           <label>
             <input
               type="checkbox"
               checked={selectedItem.isNonVegetarian}
               onChange={(e) => handleInputChange("isNonVegetarian", e.target.checked)}
-            /> Non-Vegetarian
+            />{" "}
+            Non-Vegetarian
           </label>
           <label>
             <input
               type="checkbox"
               checked={selectedItem.isGlutenFree}
               onChange={(e) => handleInputChange("isGlutenFree", e.target.checked)}
-            /> Gluten-Free
+            />{" "}
+            Gluten-Free
           </label>
         </div>
 
         <div className="flex gap-3">
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave}>Save New</Button>
           <Button onClick={handleUpdate} disabled={!selectedItem._id}>Update</Button>
-          <Button
-            onClick={() => handleDelete(selectedItem._id)}
-            disabled={!selectedItem._id}
-          >
-            Remove
-          </Button>
+          <Button onClick={() => handleDelete(selectedItem._id)} disabled={!selectedItem._id}>Remove</Button>
         </div>
       </div>
     </div>

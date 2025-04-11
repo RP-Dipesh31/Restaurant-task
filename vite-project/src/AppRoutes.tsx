@@ -54,6 +54,7 @@ const AppRoutes = () => {
                 />
                 <Route path="/reservation" element={<ReservationForm />} />
                 <Route path="/reservation-list" element={<ReservationList />} />
+                <Route path="/reservation/:id" element={<ReservationForm />} />
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/contact" element={<Contact />} /> 
                 <Route

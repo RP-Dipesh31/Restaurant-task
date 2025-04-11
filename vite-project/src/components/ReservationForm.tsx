@@ -1,12 +1,12 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import Header from './Header';
-import { Button } from './ui/button';
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import Footer from './Footer';
 import MainNav from './MainNav';
+import { useNavigate, useParams } from "react-router-dom";
+import { Button } from './ui/button';
+import { motion } from 'framer-motion';
 
 interface FormData {
-  id?: string; // Optional ID property
+  id?: string;
   name: string;
   phone: string;
   date: string;
@@ -14,8 +14,14 @@ interface FormData {
   guests: number;
 }
 
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
 const ReservationForm: React.FC = () => {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { id } = useParams();
   const [formData, setFormData] = useState<FormData>({
     name: '',
     phone: '',
@@ -23,36 +29,27 @@ const ReservationForm: React.FC = () => {
     time: '',
     guests: 1,
   });
-  const [reservations, setReservations] = useState<FormData[]>([]);
-  const [editingReservation, setEditingReservation] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchReservations();
-  }, []);
-
-  const fetchReservations = async () => {
-    const response = await fetch('http://localhost:7000/api/reservations');
-    const data = await response.json();
-    console.log("Fetched Reservations:", data); // Debugging
-    setReservations(data);
-  };
-  
+    if (id) {
+      fetch(`http://localhost:7000/api/reservations/${id}`)
+        .then(res => res.json())
+        .then(data => setFormData(data))
+        .catch(err => console.error('Error loading reservation:', err));
+    }
+  }, [id]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = editingReservation 
-      ? `http://localhost:7000/api/reservations/${editingReservation}`
+    const url = id
+      ? `http://localhost:7000/api/reservations/${id}`
       : 'http://localhost:7000/api/reservations';
-    
-    const method = editingReservation ? 'PUT' : 'POST';
+    const method = id ? 'PUT' : 'POST';
 
     const response = await fetch(url, {
       method,
@@ -61,65 +58,46 @@ const ReservationForm: React.FC = () => {
     });
 
     if (response.ok) {
-      alert(editingReservation ? '✅ Reservation Updated!' : '✅ Reservation Created!');
-      fetchReservations();
-      setEditingReservation(null);
-      setFormData({ name: '', phone: '', date: '', time: '', guests: 1 });
+      alert(id ? '✅ Reservation Updated!' : '✅ Reservation Created!');
+      navigate("/reservation-list");
     } else {
       alert('❌ Operation failed!');
     }
   };
 
-  const handleEdit = (reservation: FormData) => {
-    setFormData(reservation);
-    setEditingReservation(reservation.id || null);
-  };
-
-  const handleDelete = async (id?: string) => {
-    if (!id) return;
-  
-    const response = await fetch(`http://localhost:7000/api/reservations/${id}`, {
-      method: "DELETE",
-    });
-  
-    if (response.ok) {
-      alert("🗑️ Reservation Deleted!");
-      setReservations((prevReservations) => prevReservations.filter(res => res.id !== id));
-    } else {
-      alert("❌ Failed to delete reservation.");
-    }
-  };
-  
-  
-
   return (
     <>
       <MainNav onLogout={() => {
-        // Add your logout logic here
         console.log("User logged out");
         navigate("/login");
-      }}/>
-      <div className="relative min-h-screen bg-gray-100 p-6">
-        {/* Back Button - Positioned at the top-right */}
+      }} />
+
+      <div className="relative min-h-screen bg-gradient-to-br from-yellow-50 via-orange-100 to-yellow-50 p-6">
         <div className="absolute top-4 right-4">
           <Button 
-            type="button" 
-            onClick={() => navigate("/restaurants")} 
+            type="button"
+            onClick={() => navigate("/restaurants")}
             variant="outline"
-            className="bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2 rounded-md transition-all"
+            className="bg-orange-100 text-orange-700 hover:bg-orange-200 px-4 py-2 rounded-md transition-all"
           >
             ← Back
           </Button>
         </div>
 
-        {/* Centered Form */}
         <div className="flex justify-center items-center min-h-screen">
-          <div className="bg-white shadow-lg rounded-lg p-8 max-w-lg w-full">
-            <h2 className="text-3xl font-bold text-center text-orange-600 mb-6">Reserve a Table</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name Field */}
-              <div className="flex flex-col">
-                <label htmlFor="name" className="font-semibold">Name</label>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            transition={{ duration: 0.5 }}
+            className="bg-white shadow-2xl rounded-xl p-10 w-full max-w-lg"
+          >
+            <h2 className="text-4xl font-extrabold text-center text-orange-600 mb-6">
+              ✨ {id ? 'Update' : 'Reserve'} a Table
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <motion.div variants={fadeInUp} transition={{ delay: 0.1 }}>
+                <label htmlFor="name" className="font-semibold">Name : </label>
                 <input
                   type="text"
                   id="name"
@@ -127,14 +105,13 @@ const ReservationForm: React.FC = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="border rounded-lg p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="input-style"
                   placeholder="Enter your name"
                 />
-              </div>
+              </motion.div>
 
-              {/* Phone Field */}
-              <div className="flex flex-col">
-                <label htmlFor="phone" className="font-semibold">Phone Number</label>
+              <motion.div variants={fadeInUp} transition={{ delay: 0.2 }}>
+                <label htmlFor="phone" className="font-semibold">Phone Number : </label>
                 <input
                   type="tel"
                   id="phone"
@@ -142,14 +119,13 @@ const ReservationForm: React.FC = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="border rounded-lg p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="input-style"
                   placeholder="Enter your phone number"
                 />
-              </div>
+              </motion.div>
 
-              {/* Date Field */}
-              <div className="flex flex-col">
-                <label htmlFor="date" className="font-semibold">Date</label>
+              <motion.div variants={fadeInUp} transition={{ delay: 0.3 }}>
+                <label htmlFor="date" className="font-semibold">Date : </label>
                 <input
                   type="date"
                   id="date"
@@ -157,13 +133,12 @@ const ReservationForm: React.FC = () => {
                   value={formData.date}
                   onChange={handleChange}
                   required
-                  className="border rounded-lg p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="input-style"
                 />
-              </div>
+              </motion.div>
 
-              {/* Time Field */}
-              <div className="flex flex-col">
-                <label htmlFor="time" className="font-semibold">Time</label>
+              <motion.div variants={fadeInUp} transition={{ delay: 0.4 }}>
+                <label htmlFor="time" className="font-semibold">Time : </label>
                 <input
                   type="time"
                   id="time"
@@ -171,13 +146,12 @@ const ReservationForm: React.FC = () => {
                   value={formData.time}
                   onChange={handleChange}
                   required
-                  className="border rounded-lg p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="input-style"
                 />
-              </div>
+              </motion.div>
 
-              {/* Number of Guests */}
-              <div className="flex flex-col">
-                <label htmlFor="guests" className="font-semibold">Number of Guests</label>
+              <motion.div variants={fadeInUp} transition={{ delay: 0.5 }}>
+                <label htmlFor="guests" className="font-semibold">Number of Guests : </label>
                 <input
                   type="number"
                   id="guests"
@@ -186,35 +160,33 @@ const ReservationForm: React.FC = () => {
                   onChange={handleChange}
                   min="1"
                   required
-                  className="border rounded-lg p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="Number of guests"
+                  className="input-style"
                 />
-              </div>
+              </motion.div>
 
-              {/* Submit Button */}
-              {/* <button
-                type="submit"
-                className="bg-orange-600 text-white font-bold py-2 rounded-lg w-full hover:bg-orange-700 transition-all"
-              >
-                Book Table
-              </button> */}
+              <motion.div variants={fadeInUp} transition={{ delay: 0.6 }}>
+                <button
+                  type="submit"
+                  className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition-all"
+                >
+                  {id ? "Update" : "Reserve"}
+                </button>
+              </motion.div>
 
-              <button type="submit" className="bg-orange-600 text-white font-bold py-2 rounded-lg w-full hover:bg-orange-700 transition-all">
-                {editingReservation ? "Update" : "Reserve"}
-              </button>
+              <motion.div className="pt-2 text-center" variants={fadeInUp} transition={{ delay: 0.7 }}>
+                <Button
+                  type="button"
+                  onClick={() => navigate("/reservation-list")}
+                  className="bg-blue-500 text-white px-4 py-2 font-semibold rounded-md hover:bg-blue-600 transition"
+                >
+                  View All Reservations
+                </Button>
+              </motion.div>
             </form>
-            <div className="mt-4">
-              <Button 
-                type="button" 
-                onClick={() => navigate("/reservation-list")}
-                className="bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600"
-              >
-                View All Reservations
-              </Button>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </div>
+
       <Footer />
     </>
   );

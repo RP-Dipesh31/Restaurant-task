@@ -8,11 +8,6 @@ export type User = {
     country?: string;
 };
 
-// export type MenuItemType = {
-//     _id: string;
-//     name:string;
-//     price:string;
-// }
 
 export type MenuItemType = {
     _id?: string;

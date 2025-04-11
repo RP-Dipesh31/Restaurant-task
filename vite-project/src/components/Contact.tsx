@@ -1,5 +1,4 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
-import Header from './Header';
 import { Button } from './ui/button';
 import { useNavigate } from "react-router-dom";
 import Footer from './Footer';

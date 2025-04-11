@@ -6,6 +6,7 @@ import axios from "axios";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-hot-toast";
 import { MenuItemType } from "@/types";
+import { motion } from "framer-motion";
 
 const MenuListPage = () => {
   const { category } = useParams();
@@ -63,68 +64,64 @@ const Section = ({ title, items }: SectionProps) => {
       {items.length === 0 ? (
         <p className="text-gray-500">No items available.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: {
+              transition: {
+                staggerChildren: 0.1,
+              },
+            },
+          }}
+        >
           {items.map((item) => (
-            <div
+            <motion.div
               key={item._id}
-              className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 p-4 border border-gray-100"
+              className="w-[90%] sm:w-[85%] md:w-[80%] lg:w-[95%] xl:w-[90%] border p-4 rounded-2xl bg-white shadow-lg mx-auto transition-transform transform hover:-translate-y-2 hover:shadow-2xl"
+              whileHover={{ scale: 1.03 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
             >
-              {item.imageUrl && (
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="w-full h-40 object-cover rounded-md mb-4"
-                />
-              )}
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                {item.name}
-              </h3>
-              <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-              <p className="text-base font-bold text-green-600">
-                ${item.price.toFixed(2)}
+              <img
+                src={item.imageUrl}
+                alt={item.name}
+                className="w-full h-64 object-cover rounded-xl hover:scale-105 transition duration-300"
+              />
+              <h3 className="text-lg font-semibold mt-2">{item.name}</h3>
+              <p className="text-sm text-gray-600">{item.description}</p>
+              <p className="mt-2 text-indigo-700 font-bold">
+                ₹{item.price.toFixed(2)}
               </p>
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-white">
-                {item.isVegetarian && (
-                  <span className="bg-green-500 px-2 py-0.5 rounded-full">
-                    Vegetarian
-                  </span>
-                )}
-                {item.isNonVegetarian && (
-                  <span className="bg-red-500 px-2 py-0.5 rounded-full">
-                    Non-Vegetarian
-                  </span>
-                )}
-                {item.isGlutenFree && (
-                  <span className="bg-yellow-500 px-2 py-0.5 rounded-full">
-                    Gluten-Free
-                  </span>
+              <div className="mt-3">
+                {isInCart(item._id!) ? (
+                  <button
+                    onClick={() => {
+                      removeFromCart(item._id!);
+                      toast.success("Removed from cart");
+                    }}
+                    className="bg-red-500 hover:bg-red-600 transition text-white px-3 py-1 rounded"
+                  >
+                    Remove from Cart
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      addToCart(item);
+                      toast.success("Added to cart");
+                    }}
+                    className="bg-green-600 hover:bg-green-700 transition text-white px-3 py-1 rounded"
+                  >
+                    Add to Cart
+                  </button>
                 )}
               </div>
-
-              {isInCart(item._id!) ? (
-                <button
-                  onClick={() => {
-                    removeFromCart(item._id!);
-                    toast.error(`${item.name} removed from cart.`);
-                  }}
-                  className="mt-4 w-full bg-red-500 text-white py-2 rounded-lg font-medium hover:bg-red-600 transition"
-                >
-                  Remove from Cart
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    addToCart(item);
-                    toast.success(`${item.name} added to cart!`);
-                  }}
-                  className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition"
-                >
-                  Add to Cart
-                </button>
-              )}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );
