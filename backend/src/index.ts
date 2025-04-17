@@ -27,9 +27,11 @@ app.use(cors());
 
 console.log("Registering routes...");
 
-app.use("/api/restaurants", restaurantRoutes); 
+app.use("/api", restaurantRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.use('/uploadImages', express.static(path.join(__dirname, '../uploadImages')));
 
 app.use('/api/reservations', reservationRoutes);
 
@@ -51,7 +53,7 @@ app.post("/register", async (req: Request, res: Response): Promise<void> => {
     try {
 
         console.log("📌 Incoming request body:", req.body);
-        const { name, email, password }: { name?: string; email?: string; password?: string } = req.body;
+        const { name, email, password, role = 'user' }: { name?: string; email?: string; password?: string; role?: string } = req.body;
 
          // Validate request data
          if (!name || !email || !password) {
@@ -75,7 +77,7 @@ app.post("/register", async (req: Request, res: Response): Promise<void> => {
         console.log("🔑 Hashed Password:", hashedPassword);
 
         // Create the user
-        const newUser = await UserModel.create({ name, email, password: hashedPassword });
+        const newUser = await UserModel.create({ name, email, password: hashedPassword, role });
         console.log("✅ User created successfully:", newUser);
 
         res.status(201).json({ message: "User registered successfully", user: newUser });
@@ -103,8 +105,10 @@ app.post("/login", async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
+        // Destructure the required fields; do NOT send the hashed password to the client.
+        const { _id, name, role } = user;
         // Send response for successful login
-        res.status(200).json({ message: "Login successful", user });
+        res.status(200).json({ message: "Login successful", user: { _id, name, email, role } });
     } catch (error) {
         res.status(500).json({ error: "Internal Server Error" });
     }

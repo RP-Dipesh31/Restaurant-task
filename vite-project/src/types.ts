@@ -6,6 +6,7 @@ export type User = {
     addressLine1?: string;
     city?: string;
     country?: string;
+    role: string; // role: "admin" or "user"
 };
 
 
@@ -25,7 +26,6 @@ export type MenuItemType = {
 
 export type Restaurant = {
     _id: string;
-    // user: string;
     restaurantName: string;
     city: string;
     country: string; // Add this line
@@ -36,5 +36,4 @@ export type Restaurant = {
     imageUrl: string;
     lastUpdated: string;
     imageFile: File;
-
 }

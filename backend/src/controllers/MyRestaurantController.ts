@@ -1,51 +1,65 @@
-
 import { Request, Response } from "express";
 import Restaurant from "../models/restaurant";
 import mongoose from "mongoose";
 import path from "path";
 import fs from "fs";
 
-const createMyRestaurant = async (req: Request, res: Response): Promise<void> => {
+export const createRestaurant = async (req: Request, res: Response): Promise<void> => {
+  console.log("POST /api/restaurants hit 🚀");
+  console.log("req.body:", req.body);
+  console.log("req.file:", req.file);
+
+  const {
+    restaurantName,
+    city,
+    country,
+    deliveryPrice,
+    estimatedDeliveryTime,
+    cuisines,
+    menuItems,
+  } = req.body;
+
+  // Parse menuItems if it's a string
+  let parsedMenuItems;
+  if (typeof menuItems === 'string') {
+    try {
+      parsedMenuItems = JSON.parse(menuItems);
+    } catch (error) {
+      console.error("Failed to parse menuItems:", menuItems);
+      res.status(400).json({ message: "Invalid JSON for menuItems" });
+      return;
+    }
+  } else {
+    parsedMenuItems = menuItems;
+  }
+
   try {
-    const existingRestaurant = await Restaurant.findOne({ restaurantName: req.body.restaurantName });
-    if (existingRestaurant) {
-      res.status(409).json({ message: "Restaurant already exists" });
-      return;
-    }
-
-    if (!req.file) {
-      res.status(400).json({ message: "Image file is required" });
-      return;
-    }
-
-    const image = req.file as Express.Multer.File;
-    // Construct the image URL using the file name
-    const imageUrl = `/uploads/${image.filename}`;
-
-    // Parse menuItems from request (assuming it's sent as a JSON string)
-    const menuItems = JSON.parse(req.body.menuItems);
+    const imageUrl = req.file ? req.file.filename : "";
+    console.log("Image URL:", imageUrl);
 
     const newRestaurant = new Restaurant({
-      restaurantName: req.body.restaurantName,
-      city: req.body.city,
-      country: req.body.country,
-      deliveryPrice: parseFloat(req.body.deliveryPrice),
-      estimatedDeliveryTime: parseInt(req.body.estimatedDeliveryTime),
-      cuisines: req.body.cuisines, // Adjust if it needs JSON parsing
-      menuItems,
-      imageUrl, // Final image URL
-      lastUpdated: new Date(),
+      restaurantName,
+      city,
+      country,
+      deliveryPrice: parseFloat(deliveryPrice),
+      estimatedDeliveryTime: parseInt(estimatedDeliveryTime),
+      cuisines: Array.isArray(cuisines) ? cuisines : [cuisines],
+      menuItems: parsedMenuItems,
+      imageUrl,
     });
 
-    await newRestaurant.save();
-    res.status(201).json({ message: "Restaurant created successfully", restaurant: newRestaurant });
+    const savedRestaurant = await newRestaurant.save();
+    console.log("Saved Restaurant:", savedRestaurant);
+    res.status(201).json(savedRestaurant);
   } catch (error) {
-    console.error("Error creating restaurant:", error);
-    res.status(500).json({ message: "Internal server error", error });
+    console.error("Error saving restaurant:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
-const getRestaurants = async (req: Request, res: Response): Promise<void> => {
+
+
+export const getRestaurants = async (req: Request, res: Response): Promise<void> => {
   try {
     const restaurants = await Restaurant.find();
     res.status(200).json(restaurants);
@@ -55,7 +69,7 @@ const getRestaurants = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const updateRestaurant = async (req: Request, res: Response): Promise<void> => {
+export const updateRestaurant = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -63,44 +77,58 @@ const updateRestaurant = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const restaurant = await Restaurant.findById(id);
-    if (!restaurant) {
-      res.status(404).json({ message: "Restaurant not found" });
-      return;
-    }
+    const {
+      restaurantName,
+      city,
+      country,
+      deliveryPrice,
+      estimatedDeliveryTime,
+      cuisines,
+      menuItems,
+    } = req.body;
 
-    let imageUrl = restaurant.imageUrl;
-
-    if (req.file) {
-      const image = req.file as Express.Multer.File;
-      const newFileName = `${Date.now()}_${image.originalname}`;
-      const newUploadPath = path.join(__dirname, "../../uploads", newFileName);
-      fs.writeFileSync(newUploadPath, image.buffer);
-      imageUrl = `/uploads/${newFileName}`;
-
-      // Optionally delete old image file
-      if (restaurant.imageUrl && restaurant.imageUrl.startsWith("/uploads/")) {
-        const oldImagePath = path.join(__dirname, "../../", restaurant.imageUrl);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
+    let parsedMenuItems = menuItems;
+    if (typeof menuItems === "string") {
+      try {
+        parsedMenuItems = JSON.parse(menuItems);
+      } catch {
+        res.status(400).json({ message: "Invalid menuItems format" });
+        return;
       }
     }
 
-    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+    const existing = await Restaurant.findById(id);
+    if (!existing) {
+      res.status(404).json({ message: "Restaurant not found" });
+      return;
+    }
+
+    const imageUrl = req.file ? req.file.filename : existing.imageUrl;
+
+    const updated = await Restaurant.findByIdAndUpdate(
       id,
-      { ...req.body, imageUrl, lastUpdated: new Date() },
+      {
+        restaurantName,
+        city,
+        country,
+        deliveryPrice: parseFloat(deliveryPrice),
+        estimatedDeliveryTime: parseInt(estimatedDeliveryTime),
+        cuisines: Array.isArray(cuisines) ? cuisines : [cuisines],
+        menuItems: parsedMenuItems,
+        imageUrl,
+      },
       { new: true }
     );
 
-    res.status(200).json(updatedRestaurant);
-  } catch (error) {
-    console.error("Error updating restaurant:", error);
-    res.status(500).json({ message: "Something went wrong", error });
+    res.status(200).json(updated);
+  } catch (err) {
+    console.error("Error updating restaurant:", err);
+    res.status(500).json({ message: "Internal server error", error: err });
   }
 };
 
-const deleteRestaurant = async (req: Request, res: Response): Promise<void> => {
+
+export const deleteRestaurant = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -108,32 +136,31 @@ const deleteRestaurant = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const restaurant = await Restaurant.findById(id);
+    const restaurant = await Restaurant.findByIdAndDelete(id);
     if (!restaurant) {
       res.status(404).json({ message: "Restaurant not found" });
       return;
     }
 
-    // Delete image from local file system
-    if (restaurant.imageUrl && restaurant.imageUrl.startsWith("/uploads/")) {
-      const imagePath = path.join(__dirname, "../../", restaurant.imageUrl);
+    // Optionally delete the image file
+    if (restaurant.imageUrl) {
+      const imagePath = path.join(__dirname, "../../uploads", restaurant.imageUrl);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
 
-    await Restaurant.findByIdAndDelete(id);
     res.status(200).json({ message: "Restaurant deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting restaurant:", error);
-    res.status(500).json({ message: "Something went wrong", error });
+  } catch (err) {
+    console.error("Error deleting restaurant:", err);
+    res.status(500).json({ message: "Internal server error", error: err });
   }
 };
 
+
 export default {
-  createMyRestaurant,
+  createRestaurant,
   getRestaurants,
   updateRestaurant,
   deleteRestaurant,
 };
-

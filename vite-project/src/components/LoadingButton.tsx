@@ -1,17 +1,17 @@
 
 import React from "react";
+import { Button } from "./ui/button"; // Or wherever your Button component comes from
 
-type LoadingButtonProps = React.ComponentProps<"button"> & {
-    type: "submit" | "button" | "reset";
-    disabled: boolean;
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  loading?: boolean;
 };
 
-function LoadingButton({ type, disabled, children, ...props }: LoadingButtonProps) {
-    return (
-        <button type={type} disabled={disabled} {...props}>
-            {children}
-        </button>
-    );
-}
+const LoadingButton: React.FC<Props> = ({ loading = false, children, ...rest }) => {
+  return (
+    <Button disabled={loading} {...rest}>
+      {loading ? "Loading..." : children}
+    </Button>
+  );
+};
 
 export default LoadingButton;

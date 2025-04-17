@@ -30,7 +30,7 @@ const ReservationList: React.FC = () => {
       console.error("Error fetching reservations:", error);
     }
   };
-
+  
   useEffect(() => {
     fetchReservations();
   }, []);
@@ -124,12 +124,19 @@ const ReservationList: React.FC = () => {
                   {res.guests} guests
                 </div>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => navigate(`/reservation/${res.id}`)}
-                    className="flex items-center gap-1 bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600"
-                  >
+                    <button
+                      onClick={() => {
+                        if (!res.id || res.id === 'undefined') {
+                          console.error('Invalid reservation id:', res.id);
+                          return;
+                        }
+                        navigate(`/reservation/${res.id}`);
+                      }}
+                      className="flex items-center gap-1 bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600"
+                    >
                     <FaEdit /> Edit
                   </button>
+
                   <button
                     onClick={() => handleDelete(res.id)}
                     className="flex items-center gap-1 bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600"

@@ -15,6 +15,9 @@ import ReservationList from "./components/ReservationList";
 import CheckoutPage from "./pages/CheckoutPage";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import AdminRoute from "./components/AdminRoute";
+import Unauthorized from "./pages/Unauthorized";
+import RestaurantMenuPage from "./forms/manage-restaurant-form/RestaurantMenuPage";
 
 
 const stripePromise = loadStripe(import.meta.env.VITE_REACT_APP_STRIPE_PUBLIC_KEY || '');
@@ -37,10 +40,11 @@ const AppRoutes = () => {
                 <Route  
                     path="/manage-restaurant" 
                     element={
-                        <Layout>
-                            <ManageRestaurantForm onSave={async () => { /* handle save */ }} isLoading={false} />
-                        
-                        </Layout>
+                        <AdminRoute>
+                            <Layout>
+                                <ManageRestaurantForm />
+                            </Layout>
+                        </AdminRoute>
                     }
                 />
 
@@ -52,6 +56,7 @@ const AppRoutes = () => {
                         </Layout>
                     }
                 />
+                <Route path="/restaurant-menu/:id" element={<RestaurantMenuPage />} />
                 <Route path="/reservation" element={<ReservationForm />} />
                 <Route path="/reservation-list" element={<ReservationList />} />
                 <Route path="/reservation/:id" element={<ReservationForm />} />
@@ -76,7 +81,7 @@ const AppRoutes = () => {
                     }
                 />
 
-            
+            <Route path="/unauthorized" element={<Unauthorized />} />
             <Route  path="*" element={<Navigate to="/"/>}/>
         </Routes>
     )

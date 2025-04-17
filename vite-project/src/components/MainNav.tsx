@@ -18,6 +18,10 @@ const MainNav = ({ onLogout }: MainNavProps) => {
   const [isCartModalOpen, setCartModalOpen] = useState(false);
   const { cartItemCount } = useCart();
 
+  // Retrieve the stored user from localStorage (if any)
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
   const handleLogoutClick = () => {
     onLogout();
     navigate("/");
@@ -37,38 +41,40 @@ const MainNav = ({ onLogout }: MainNavProps) => {
 
           {/* Navigation links */}
           <div className="flex space-x-6 items-center relative">
-            {/* Dashboard Dropdown */}
-            <div className="relative">
-              <button
-                className="font-bold hover:text-orange-500"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setInfoMenuOpen(false);
-                  setReservationMenuOpen(false);
-                  setDashboardMenuOpen((prev) => !prev);
-                }}
-              >
-                Dashboard
-              </button>
-              {dashboardMenuOpen && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-10">
-                  <Link
-                    to="/manage-restaurant"
-                    className="block px-4 py-2 hover:bg-orange-100"
-                    onClick={() => setDashboardMenuOpen(false)}
-                  >
-                    Manage Restaurant
-                  </Link>
-                  <Link
-                    to="/restaurants"
-                    className="block px-4 py-2 hover:bg-orange-100"
-                    onClick={() => setDashboardMenuOpen(false)}
-                  >
-                    All Restaurants
-                  </Link>
-                </div>
-              )}
-            </div>
+            {/* Conditionally render Dashboard Dropdown only if user.role === "admin" */}
+            {user && user.role === "admin" && (
+              <div className="relative">
+                <button
+                  className="font-bold hover:text-orange-500"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setInfoMenuOpen(false);
+                    setReservationMenuOpen(false);
+                    setDashboardMenuOpen((prev) => !prev);
+                  }}
+                >
+                  Dashboard
+                </button>
+                {dashboardMenuOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-10">
+                    <Link
+                      to="/manage-restaurant"
+                      className="block px-4 py-2 hover:bg-orange-100"
+                      onClick={() => setDashboardMenuOpen(false)}
+                    >
+                      Manage Restaurant
+                    </Link>
+                    <Link
+                      to="/restaurants"
+                      className="block px-4 py-2 hover:bg-orange-100"
+                      onClick={() => setDashboardMenuOpen(false)}
+                    >
+                      All Restaurants
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Reservation Dropdown */}
             <div className="relative">
@@ -186,7 +192,6 @@ const MainNav = ({ onLogout }: MainNavProps) => {
               )}
             </button>
 
-
             <Button className="px-3 font-bold hover:bg-gray-500" onClick={handleLogoutClick}>
               Log Out
             </Button>
@@ -199,3 +204,4 @@ const MainNav = ({ onLogout }: MainNavProps) => {
 };
 
 export default MainNav;
+

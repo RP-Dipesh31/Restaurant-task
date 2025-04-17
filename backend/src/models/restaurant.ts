@@ -1,23 +1,29 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 
-const menuItemSchema = new mongoose.Schema({
-    name: { type:String, required:true },
-    price: { type:Number, required: true},
-})
+interface Restaurant extends Document {
+  restaurantName: string;
+  city: string;
+  country: string;
+  deliveryPrice: number;
+  estimatedDeliveryTime: number;
+  cuisines: string[];
+  menuItems: object[];
+  imageUrl: string;
+  lastUpdated: Date;
+}
 
-const restaurantSchema = new mongoose.Schema({
-  //  user:{type: mongoose.Schema.Types.ObjectId, ref: "User"},
-    restaurantName: {type : String, required : true},
-    city: {type : String, required : true},
-    country: {type : String, required : true},
-    deliveryPrice: {type : Number, required : true},
-    estimatedDeliveryTime: {type : Number, required : true},
-    cuisines:[{type:String, required: true}],
-    menuItems:[menuItemSchema],
-    imageUrl:{ type:String, required:true},
-    lastUpdated: { type:Date, required: true},
-
+const restaurantSchema = new Schema<Restaurant>({
+  restaurantName: { type: String, required: true },
+  city: { type: String, required: true },
+  country: { type: String, required: true },
+  deliveryPrice: { type: Number, required: true },
+  estimatedDeliveryTime: { type: Number, required: true },
+  cuisines: { type: [String], required: true },
+  menuItems: { type: [Object], required: true },
+  imageUrl: { type: String, required: true },
+  lastUpdated: { type: Date, default: Date.now },
 });
 
-const Restaurant = mongoose.model("Restaurant", restaurantSchema);
+const Restaurant = mongoose.model<Restaurant>("Restaurant", restaurantSchema);
+
 export default Restaurant;

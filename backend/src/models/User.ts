@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   addressLine1: { type: String, required: false },
   city: { type: String, required: false },
   country: { type: String, required: false },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' }, // Added role field 
 });
 
 const UserModel = mongoose.model("User", UserSchema);

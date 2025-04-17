@@ -1,15 +1,14 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import DetailsSection from "../manage-restaurant-form/DetailsSection";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import LoadingButton from "../../components/LoadingButton";
 import { Separator } from "@radix-ui/react-separator";
 import CuisionSection from "../manage-restaurant-form/CuisinesSection";
 import MenuSection from "../manage-restaurant-form/MenuSection";
 import { useState } from "react";
+import ImageSection from "./ImageSection";
 import axios from "axios";
 
 const formSchema = z.object({
@@ -49,12 +48,7 @@ const formSchema = z.object({
 
 export type RestaurantFormData = z.infer<typeof formSchema>;
 
-type Props = {
-  onSave: (data: Omit<RestaurantFormData, "imageFile"> & { imageFile: File }) => Promise<void>;
-  isLoading: boolean;
-};
-
-const ManageRestaurantForm = ({ onSave, isLoading }: Props) => {
+const ManageRestaurantForm = () => {
   const navigate = useNavigate();
   const form = useForm<RestaurantFormData>({
     resolver: zodResolver(formSchema),
@@ -69,35 +63,22 @@ const ManageRestaurantForm = ({ onSave, isLoading }: Props) => {
     },
   });
 
-  // We store the final image URL from backend (not a temporary blob)
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // When image is chosen, upload it immediately and use the returned URL for preview.
+  // When file is chosen, update the preview and set file value into the form
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      try {
-        const formData = new FormData();
-        // Field name "image" must match what your upload route expects
-        formData.append("image", file);
-        const response = await axios.post("http://localhost:7000/api/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        const finalImageUrl = response.data.imageUrl; // Expecting full URL: http://localhost:7000/uploads/...
-        console.log("Final image URL from backend:", finalImageUrl);
-        setImagePreview(finalImageUrl);
-        // Save the file in the form state (backend will use it if needed)
-        form.setValue("imageFile", file, { shouldValidate: true });
-      } catch (err) {
-        console.error("Error uploading image:", err);
-        alert("Failed to upload image");
-      }
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      form.setValue("imageFile", file, { shouldValidate: true });
     }
   };
 
-  const onSubmit = (formData: RestaurantFormData) => {
-    // In our submission, we do NOT set imageUrl from the preview because the backend will generate it.
-    // However, to verify, we pass the final image URL (from imagePreview) along.
+  const onSubmit = async (formData: RestaurantFormData) => {
+    console.log("Form submitted:", formData);
+
+    // Convert numeric fields (deliveryPrice and menuItems.price) to cents
     const restaurantData: Omit<RestaurantFormData, "imageFile"> & { imageFile: File } = {
       ...formData,
       deliveryPrice: formData.deliveryPrice * 100,
@@ -128,11 +109,34 @@ const ManageRestaurantForm = ({ onSave, isLoading }: Props) => {
           isGlutenFree: item.isGlutenFree || false,
         })),
       ],
-    
       imageFile: formData.imageFile,
     };
+
     console.log("Final restaurantData:", restaurantData);
-    onSave(restaurantData);
+
+    // Create FormData payload
+    const formDataToSend = new FormData();
+    formDataToSend.append("restaurantName", restaurantData.restaurantName);
+    formDataToSend.append("city", restaurantData.city);
+    formDataToSend.append("country", restaurantData.country);
+    formDataToSend.append("deliveryPrice", restaurantData.deliveryPrice.toString());
+    formDataToSend.append("estimatedDeliveryTime", restaurantData.estimatedDeliveryTime.toString());
+    restaurantData.cuisines.forEach((cuisine) => formDataToSend.append("cuisines", cuisine));
+    // Stringify menuItems so that the backend can parse it
+    formDataToSend.append("menuItems", JSON.stringify(restaurantData.menuItems));
+    formDataToSend.append("imageFile", restaurantData.imageFile);
+
+    try {
+      const response = await axios.post("http://localhost:7000/api/restaurants", formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      console.log("Backend response:", response.data);
+      alert("Restaurant created successfully!");
+      navigate("/restaurants");
+    } catch (error) {
+      console.error("Error saving restaurant:", error);
+      alert("Error saving restaurant. Please try again.");
+    }
   };
 
   return (
@@ -146,44 +150,25 @@ const ManageRestaurantForm = ({ onSave, isLoading }: Props) => {
         >
           ← Back
         </Button>
-
         <DetailsSection />
         <Separator />
         <CuisionSection />
         <Separator />
         <MenuSection />
         <Separator />
-
-        {/* Image Upload Section */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Select Image:</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="mt-2 border p-2 rounded w-full"
-          />
-          {imagePreview && (
-            <div className="mt-4">
-              <p className="text-sm text-gray-500">Preview:</p>
-              <img src={imagePreview} alt="Preview" className="w-40 h-40 object-cover rounded-md shadow" />
-            </div>
-          )}
-        </div>
-
+        {/* Image Upload Section */} 
+        <ImageSection imagePreview={imagePreview} setImagePreview={setImagePreview} onImageChange={handleImageChange} />
         <Separator />
-
-        <LoadingButton
-          type="submit"
-          disabled={isLoading}
-          className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-md transition-all disabled:bg-blue-400"
-        >
-          {isLoading ? "Saving..." : "Save Restaurant"}
-        </LoadingButton>
-
+        {/* Save Restaurant Button */} 
+        <Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-md transition-all">
+          Save Restaurant
+        </Button>
         <Button
           type="button"
-          onClick={() => form.reset()}
+          onClick={() => {
+            form.reset();
+            setImagePreview(null);
+          }}
           variant="outline"
           className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-md transition-all"
         >

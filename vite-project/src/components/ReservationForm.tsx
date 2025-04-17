@@ -72,18 +72,7 @@ const ReservationForm: React.FC = () => {
         navigate("/login");
       }} />
 
-      <div className="relative min-h-screen bg-gradient-to-br from-yellow-50 via-orange-100 to-yellow-50 p-6">
-        <div className="absolute top-4 right-4">
-          <Button 
-            type="button"
-            onClick={() => navigate("/restaurants")}
-            variant="outline"
-            className="bg-orange-100 text-orange-700 hover:bg-orange-200 px-4 py-2 rounded-md transition-all"
-          >
-            ← Back
-          </Button>
-        </div>
-
+      <div className="relative min-h-screen bg-gradient-to-br from-yellow-50 via-orange-100 to-yellow-50 p-6">     
         <div className="flex justify-center items-center min-h-screen">
           <motion.div
             initial="hidden"

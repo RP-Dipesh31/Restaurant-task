@@ -29,6 +29,8 @@ const Login: React.FC<LoginProps> = ({ onClose, toggleAuth, onLoginSuccess }) =>
       const res = await axios.post("http://localhost:7000/login", { email, password });
       if (res.status === 200) {
         setSuccess("Login Successful!");
+        // Store the user data (including role) in localStorage
+        localStorage.setItem("user", JSON.stringify(res.data.user));
         setTimeout(() => {
           onClose();
           onLoginSuccess();

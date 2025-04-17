@@ -11,6 +11,7 @@ const Signup: React.FC<SignupProps> = ({ onClose, toggleAuth, onSignupSuccess })
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");  
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -22,7 +23,7 @@ const Signup: React.FC<SignupProps> = ({ onClose, toggleAuth, onSignupSuccess })
     }
 
     try {
-      await axios.post("http://localhost:7000/register", { name, email, password });
+      await axios.post("http://localhost:7000/register", { name, email, password , role});
       setSuccess("Signup Successful!");
       setTimeout(() => {
         onSignupSuccess?.();
@@ -60,6 +61,14 @@ const Signup: React.FC<SignupProps> = ({ onClose, toggleAuth, onSignupSuccess })
           onChange={(e) => setPassword(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
         />
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
         <button
           type="submit"
           className="w-full bg-orange-500 text-white py-2 rounded-md hover:bg-orange-600"

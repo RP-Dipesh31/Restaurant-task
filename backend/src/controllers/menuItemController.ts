@@ -1,16 +1,20 @@
 import { Request, Response } from "express";
 import MenuItem from "../models/menuModel";
 
-// Create a menu item
 export const createMenuItem = async (req: Request, res: Response): Promise<void> => {
   try {
-    const newItem = new MenuItem(req.body);
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    const newItem = new MenuItem({
+      ...req.body,
+      imageUrl: imageUrl,  // Storing the relative image URL
+    });
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (error) {
     res.status(500).json({ message: "Error creating menu item", error });
   }
 };
+
 
 // Get all menu items
 export const getMenuItems = async (_req: Request, res: Response): Promise<void> => {
