@@ -25,6 +25,9 @@ interface MenuItem {
   isVegetarian: boolean;
   isNonVegetarian: boolean;
   isGlutenFree: boolean;
+  quantity: number; // New
+  discountType: 'BOGO' | 'PERCENTAGE' | null; // New
+  discountValue?: number; // New
 }
 
 const defaultItem: MenuItem = {
@@ -37,6 +40,9 @@ const defaultItem: MenuItem = {
   isVegetarian: false,
   isNonVegetarian: false,
   isGlutenFree: false,
+  quantity: 0,
+  discountType: null,
+  discountValue: 0,
 };
 
 const MenuSection = () => {
@@ -252,6 +258,34 @@ const MenuSection = () => {
           </label>
         </div>
 
+          <Input
+            type="number"
+            value={selectedItem.quantity}
+            onChange={(e) => handleInputChange("quantity", parseInt(e.target.value, 10))}
+            placeholder="Quantity"
+          />
+
+          <select
+            className="w-full border p-2 rounded"
+            value={selectedItem.discountType || ""}
+            onChange={(e) =>
+              handleInputChange("discountType", e.target.value || null)
+            }
+          >
+            <option value="">Select Discount Type</option>
+            <option value="BOGO">BOGO</option>
+            <option value="PERCENTAGE">Percentage</option>
+          </select>
+
+          <Input
+            type="number"
+            value={selectedItem.discountValue ?? ""}
+            onChange={(e) =>
+              handleInputChange("discountValue", e.target.value === "" ? 0 : parseFloat(e.target.value))
+            }
+            placeholder="Discount Value"
+          />
+
         <div className="flex gap-3">
           <Button onClick={handleSave}>Save New</Button>
           <Button onClick={handleUpdate} disabled={!selectedItem._id}>Update</Button>
@@ -263,3 +297,5 @@ const MenuSection = () => {
 };
 
 export default MenuSection;
+
+

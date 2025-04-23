@@ -1,40 +1,57 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { MenuItemType } from "@/types";
+import { calculateFinalPrice } from "@/utils/calculateDiscount";
 import { Button } from "@/components/ui/button";
 
 const categories = ["Appetizers", "Main Course", "Desserts", "Beverages"] as const;
 
-const MenuPage = () => {
+const MenuPage: React.FC = () => {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [filters, setFilters] = useState({ vegetarian: false, glutenFree: false, nonVegetarian: false });
-  const [cart, setCart] = useState<MenuItemType[]>([]);
+  const [filters, setFilters] = useState({
+    vegetarian: false,
+    glutenFree: false,
+    nonVegetarian: false,
+  });
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    // Fetch menu items from API
-    const fetchMenuItems = async () => {
-      const response = await fetch("/api/menu"); // Update with actual endpoint
-      const data = await response.json();
-      setMenuItems(data);
-    };
-
-    fetchMenuItems();
+    axios
+      .get<MenuItemType[]>("/api/menu-items")
+      .then((res) => {
+        setMenuItems(res.data);
+        // init qty = 1
+        const init = res.data.reduce((acc, i) => {
+          if (i._id) {
+            acc[i._id] = 1;
+          }
+          return acc;
+        }, {} as Record<string, number>);
+        setQuantities(init);
+      })
+      .catch(() => alert("Failed to load menu items."));
   }, []);
 
   const filteredItems = menuItems.filter((item) => {
     if (selectedCategory && item.category !== selectedCategory) return false;
     if (filters.vegetarian && !item.isVegetarian) return false;
     if (filters.glutenFree && !item.isGlutenFree) return false;
-    if (filters.nonVegetarian && item.isVegetarian) return false;
+    if (filters.nonVegetarian && !item.isNonVegetarian) return false;
     return true;
   });
 
   const toggleFilter = (key: keyof typeof filters) => {
-    setFilters({ ...filters, [key]: !filters[key] });
+    setFilters((f) => ({ ...f, [key]: !f[key] }));
   };
 
-  const addToCart = (item: MenuItemType) => {
-    setCart((prev) => [...prev, item]);
+  const handleQty = (id: string, qty: number) => {
+    setQuantities((q) => ({ ...q, [id]: Math.max(1, qty) }));
+  };
+
+  const addToCart = (item: MenuItemType, qty: number) => {
+    // your existing cart logic here…
+    console.log("Add to cart:", item, "qty:", qty);
   };
 
   return (
@@ -59,44 +76,82 @@ const MenuPage = () => {
 
       {/* Filters */}
       <div className="flex gap-4 mt-4">
-        <label>
-          <input
-            type="checkbox"
-            checked={filters.vegetarian}
-            onChange={() => toggleFilter("vegetarian")}
-          />
-          Vegetarian
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={filters.glutenFree}
-            onChange={() => toggleFilter("glutenFree")}
-          />
-          Gluten-Free
-        </label>
+        {["vegetarian", "glutenFree", "nonVegetarian"].map((key) => (
+          <label key={key} className="inline-flex items-center space-x-1">
+            <input
+              type="checkbox"
+              checked={(filters as any)[key]}
+              onChange={() => toggleFilter(key as any)}
+            />
+            <span className="text-sm capitalize">{key}</span>
+          </label>
+        ))}
       </div>
 
       {/* Menu Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {filteredItems.map((item) => (
-          <div
-            key={item._id}
-            className="border p-4 rounded shadow bg-white flex flex-col justify-between"
-          >
-            <img
-              src={item.imageUrl}
-              alt={item.name}
-              className="w-full h-40 object-cover rounded"
-            />
-            <h2 className="text-lg font-semibold mt-2">{item.name}</h2>
-            <p className="text-sm text-gray-600">{item.description}</p>
-            <p className="font-bold mt-1">${(parseInt(item.price.toString()) / 100).toFixed(2)}</p>
-            <Button className="mt-2" onClick={() => addToCart(item)}>
-              Add to Cart
-            </Button>
-          </div>
-        ))}
+        {filteredItems.map((item) => {
+          const qty = item._id ? quantities[item._id] || 1 : 1;
+          const original = (item.price * qty).toFixed(2);
+          const discounted = calculateFinalPrice(item, qty).toFixed(2);
+
+          return (
+            <div
+              key={item._id}
+              className="relative border p-4 rounded shadow bg-white flex flex-col justify-between"
+            >
+              {item.discountType && (
+                <span className="absolute top-2 left-2 badge badge-secondary text-xs font-bold px-2 py-1 rounded-full">
+                  {item.discountType === "PERCENTAGE"
+                    ? `${item.discountValue}% OFF`
+                    : "BOGO"}
+                </span>
+              )}
+
+              <img
+                src={item.imageUrl}
+                alt={item.name}
+                className="w-full h-40 object-cover rounded"
+              />
+              <h2 className="text-lg font-semibold mt-2">{item.name}</h2>
+              <p className="text-sm text-gray-600">{item.description}</p>
+
+              {/* Quantity Input */}
+              <div className="mt-2 flex items-center space-x-2">
+                <label htmlFor={`qty-${item._id}`} className="text-sm">Qty:</label>
+                <input
+                  id={`qty-${item._id}`}
+                  type="number"
+                  min={1}
+                  value={qty}
+                  onChange={(e) => item._id && handleQty(item._id, +e.target.value)}
+                  className="w-16 border rounded px-2 py-1 text-sm"
+                />
+              </div>
+
+              <div className="mt-1 flex items-baseline gap-2">
+                {item.discountType ? (
+                  <>
+                    <span className="line-through text-gray-500">
+                      ₹{original}
+                    </span>
+                    <span className="font-bold">
+                      ₹{discounted}
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-bold">
+                    ₹{original}
+                  </span>
+                )}
+              </div>
+
+              <Button className="mt-2" onClick={() => addToCart(item, qty)}>
+                Add {qty}
+              </Button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -20,10 +20,11 @@ export type MenuItemType = {
     isVegetarian: boolean;
     isGlutenFree: boolean;
     isNonVegetarian?: boolean;
+    discountType?: "PERCENTAGE" | "BOGO"; // Added property
+    discountValue?: number; // Optional discount value
+  
 };
   
-  
-
 export type Restaurant = {
     _id: string;
     restaurantName: string;

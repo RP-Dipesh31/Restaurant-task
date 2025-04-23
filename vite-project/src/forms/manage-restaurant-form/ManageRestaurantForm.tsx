@@ -38,6 +38,9 @@ const formSchema = z.object({
         category: z.string().optional(),
         isVegetarian: z.boolean().optional(),
         isGlutenFree: z.boolean().optional(),
+        quantity: z.number().min(1, "Quantity must be greater than 0").optional(),
+        discountType: z.enum(["BOGOF", "PERCENTAGE"]).optional(),
+        discountValue: z.number().optional(),
       })
     )
     .nonempty("At least one menu item is required"),
